@@ -7,6 +7,12 @@
 //
 
 #import "BSViewController.h"
+#import "BSQuoteEngine.h"
+@import AVFoundation;
+
+
+#define urlString @"http://www.kumarsxray.com/quotes"
+
 
 @interface BSViewController ()
 
@@ -15,11 +21,19 @@
 @implementation BSViewController
 
 
+
 #pragma mark View
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    NSURL* sndurl = [[NSBundle mainBundle] URLForResource:@"zara" withExtension:@"mp3"];
+    NSError *error;
+    self.audioPlayer = [[AVAudioPlayer alloc]initWithContentsOfURL:sndurl error:&error];
+    [self.audioPlayer setNumberOfLoops:-1];
+    [self.audioPlayer play];
+    self.quoteShownLabel.text = @"";
     self.componentItemsOne = [NSMutableArray new];
+    self.shownQuotes = [NSMutableSet new];
     
     
     for (int i = 1; i<=7; i++) {
@@ -33,6 +47,12 @@
     [self.bsPicker setDataSource:self];
     [self.bsPicker setShowsSelectionIndicator:NO];
 	// Do any additional setup after loading the view, typically from a nib.
+    
+    // Get quotes
+    self.quoteEngine = [BSQuoteEngine makeQuoteEngineWithURL:[NSURL URLWithString:urlString]];
+    NSLog(@"%@",[self.quoteEngine quoteLines]);
+    self.quoteShownLabel.text = [NSString stringWithFormat:@"0/%i",[self.quoteEngine.quoteLines count]];
+    
 }
 
 - (void)didReceiveMemoryWarning
@@ -76,6 +96,7 @@
 #pragma mark Spin/Win
 //Spin Methods
 - (IBAction)spinWheel:(id)sender {
+   
     
     NSMutableArray *rowTracker = [NSMutableArray new];
     
@@ -94,8 +115,45 @@
     NSLog(@"%@",rowTracker);
     
     if ([rowTracker objectAtIndex:0] == [rowTracker objectAtIndex:1] && [rowTracker objectAtIndex:0] == [rowTracker objectAtIndex:2]) {
+        
+        [self.spinButton setHidden:YES];
+        
+        
+        //[self animate];
+        
+        int randomQuote = arc4random() % [self.quoteEngine.quoteLines count];
+        self.quoteTextView.text = [self.quoteEngine.quoteLines objectAtIndex:randomQuote];
+        
+        [self.shownQuotes addObject:[NSNumber numberWithInt:randomQuote]];
+        self.quoteShownLabel.text = [NSString stringWithFormat:@"%i/%i",[self.shownQuotes count],[self.quoteEngine.quoteLines count]];
+        [NSTimer scheduledTimerWithTimeInterval:5.0 target:self selector:@selector(showButton) userInfo:nil repeats:NO];
+       
+        
         NSLog(@"success");
     }
     
+    
+    
 }
+
+#pragma mark Animations/Hide
+
+-(void) animate {
+    [UIView animateWithDuration:(2.0) delay:0 options:(UIViewAnimationOptionAutoreverse)animations:^{
+        
+        self.bsPicker.frame = CGRectMake(15, 240, 291, 162);
+    } completion:^(BOOL finished) {
+        self.bsPicker.frame = CGRectMake(15, 128, 291, 162);
+    }];
+    
+}
+
+-(void) showButton {
+    
+    NSLog(@"in show button")    ;
+    
+    [self.spinButton setHidden:NO];
+    
+}
+
 @end
